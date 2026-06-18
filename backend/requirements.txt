@@ -5,6 +5,7 @@ django-cors-headers>=4.3.0
 drf-spectacular>=0.27.0
 pillow>=10.2.0
 python-dotenv>=1.0.1
+dj-database-url>=2.1.0
 # Production WSGI server
 gunicorn>=21.2.0
 # Static file serving in production (replaces DEBUG-only serving)
@@ -13,3 +14,7 @@ whitenoise[brotli]>=6.6.0
 pypdf>=4.0.0
 # HTTP client for Gemini AI API calls
 requests>=2.31.0
+# PostgreSQL support
+dj-database-url>=2.1.0
+psycopg2-binary>=2.9.9
+

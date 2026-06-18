@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getLeaderboard } from '../services/extensions';
+import { getFileUrl } from '../services/api';
+
 
 const LeaderboardPage = () => {
   const [data, setData] = useState(null);
@@ -106,7 +108,7 @@ const LeaderboardPage = () => {
                     {/* Avatar */}
                     <div className="w-12 h-12 rounded-xl bg-dark-950 border border-white/5 overflow-hidden flex-shrink-0 flex items-center justify-center">
                       {hr.profile_photo ? (
-                        <img src={`http://localhost:8000${hr.profile_photo}`} alt={hr.full_name} className="w-full h-full object-cover" />
+                        <img src={getFileUrl(hr.profile_photo)} alt={hr.full_name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-slate-600 text-sm font-bold">{hr.full_name.charAt(0)}</span>
                       )}

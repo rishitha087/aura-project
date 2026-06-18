@@ -11,54 +11,51 @@ import dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env file (local dev only — in production, Railway injects env vars directly)
+# Load .env file (local dev only — in production, Render injects env vars directly)
 dotenv.load_dotenv(BASE_DIR / '.env')
 
 
 # ─── ENVIRONMENT DETECTION ────────────────────────────────────────────────────
 
-# Railway automatically injects RAILWAY_ENVIRONMENT and RAILWAY_STATIC_URL.
-# We check both so IS_PRODUCTION works even if you forget to set RAILWAY_ENVIRONMENT.
-# For local dev both are unset → IS_PRODUCTION = False.
+# Render automatically injects RENDER=true.
+# We also allow setting IS_PRODUCTION=True.
 IS_PRODUCTION = (
-    os.getenv('RAILWAY_ENVIRONMENT') == 'production'
-    or bool(os.getenv('RAILWAY_STATIC_URL'))   # Railway always sets this in all envs
+    os.getenv('IS_PRODUCTION', 'False').lower() in ('true', '1')
+    or bool(os.getenv('RENDER'))
 )
 
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
 
-# In production, SECRET_KEY MUST be set in Railway environment variables.
+# In production, SECRET_KEY MUST be set in Render environment variables.
 # There is no fallback — this will raise a hard error if missing in prod.
 _default_secret = 'django-insecure-local-dev-only-change-in-production' if not IS_PRODUCTION else None
 SECRET_KEY = os.getenv('SECRET_KEY', _default_secret)
 if not SECRET_KEY:
     raise ValueError(
         "FATAL: SECRET_KEY environment variable is not set. "
-        "Add it to Railway environment variables."
+        "Add it to Render environment variables."
     )
 
 # DEBUG: Never True in production
 DEBUG = not IS_PRODUCTION
 
 # ALLOWED_HOSTS: set via env var in production, e.g.:
-# ALLOWED_HOSTS=your-app.up.railway.app,your-custom-domain.com
+# ALLOWED_HOSTS=your-app.onrender.com,your-custom-domain.com
 _default_hosts = 'localhost,127.0.0.1'
 ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', _default_hosts).split(',') if h.strip()]
 
-# Always allow Railway's internal healthcheck probe.
-# Railway's internal probe sends: Host: localhost or Host: 0.0.0.0
-# Without these, Django returns 400 Bad Request → healthcheck fails.
+# Always allow local hosts and Render domains.
 if IS_PRODUCTION:
     ALLOWED_HOSTS += [
         'localhost',
         '127.0.0.1',
         '0.0.0.0',
-        '.up.railway.app',
-        '.railway.app',
+        '.onrender.com',
     ]
     # De-duplicate
     ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
+
 
 
 # ─── APPLICATION DEFINITION ───────────────────────────────────────────────────
@@ -117,28 +114,38 @@ WSGI_APPLICATION = 'mock_interview_api.wsgi.application'
 
 # ─── DATABASE ─────────────────────────────────────────────────────────────────
 #
-# Local dev:       db.sqlite3 sits next to manage.py
-# Railway prod:    Volume is mounted at /data/ — database lives at /data/db.sqlite3
-#                  This persists across redeployments.
-#
-# To use PostgreSQL later, set DATABASE_URL env var and install psycopg2-binary.
+# Production: Database is a Supabase PostgreSQL instance loaded from DATABASE_URL.
+# Local Dev: Reads DATABASE_URL from the local .env file.
+# Enforces SSL connections to Supabase (sslmode=require).
 
-if IS_PRODUCTION:
-    # Railway volume is mounted at /data
-    _db_path = Path('/data/db.sqlite3')
-else:
-    _db_path = BASE_DIR / 'db.sqlite3'
+import dj_database_url
+
+database_url = os.getenv('DATABASE_URL')
+
+if not database_url:
+    if IS_PRODUCTION:
+        raise ValueError(
+            "FATAL: DATABASE_URL environment variable is not set. "
+            "Please configure your Supabase connection string in Render environment variables."
+        )
+    # Local fallback placeholder matching user's Supabase instance
+    database_url = "postgresql://postgres:REPLACE_WITH_YOUR_PASSWORD@db.wmtilxlgwstdnfhatqwe.supabase.co:5432/postgres"
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': _db_path,
-        # SQLite production tuning: WAL mode and connection timeout
-        'OPTIONS': {
-            'timeout': 20,
-        },
-    }
+    'default': dj_database_url.config(
+        default=database_url,
+        conn_max_age=600,
+        conn_health_checks=True,
+        ssl_require=True,
+    )
 }
+
+# Explicitly ensure sslmode is set to require for Supabase compatibility
+if DATABASES.get('default'):
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': 'require',
+    }
+
 
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
@@ -171,7 +178,7 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Media files (user uploads: resumes, profile photos, verification documents)
-# In production: served from the Railway persistent volume at /data/media/
+# In production: served from the Render persistent volume at /data/media/
 if IS_PRODUCTION:
     MEDIA_ROOT = Path('/data/media')
 else:
@@ -280,7 +287,7 @@ X_FRAME_OPTIONS = 'DENY'
 
 # Production-only HTTPS security headers
 if IS_PRODUCTION:
-    # Railway terminates SSL at the load balancer, so we trust the forwarded headers
+    # Render terminates SSL at the load balancer, so we trust the forwarded headers
     SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

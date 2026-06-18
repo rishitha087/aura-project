@@ -40,7 +40,7 @@ urlpatterns = [
 
 # Serve user-uploaded media files:
 # - In development (DEBUG=True): served by Django's built-in static server
-# - In production: served from the Railway volume mount path /data/media/
+# - In production: served from the Render persistent volume mount path /data/media/
 #   WhiteNoise handles static files; media files are served by gunicorn directly.
 #   For production scale, consider moving to S3 (AWS/Cloudflare R2).
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

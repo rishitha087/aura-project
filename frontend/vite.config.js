@@ -7,7 +7,7 @@ export default defineConfig({
 
   // ── Development Proxy ─────────────────────────────────────────────────────
   // In dev, all /api and /media requests are forwarded to the Django backend.
-  // In production, VITE_API_URL in .env.production points directly to Railway.
+  // In production, VITE_API_URL is set in your Vercel project environment variables.
   server: {
     proxy: {
       '/api': {
