@@ -1,1 +1,42 @@
-{"services":[{"type":"web","name":"prepsync-backend","env":"python","plan":"free","rootDir":"backend","buildCommand":"pip install -r requirements.txt && python manage.py collectstatic --noinput","startCommand":"python manage.py migrate --noinput && gunicorn mock_interview_api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level info","envVars":[{"key":"IS_PRODUCTION","value":"True"},{"key":"SECRET_KEY","generateValue":true},{"key":"DATABASE_URL","sync":false},{"key":"GEMINI_API_KEY","sync":false},{"key":"RAZORPAY_KEY_ID","sync":false},{"key":"RAZORPAY_KEY_SECRET","sync":false},{"key":"EMAIL_OTP_ENABLED","value":"false"},{"key":"SMS_OTP_ENABLED","value":"false"},{"key":"ALLOWED_HOSTS","value":"*"}]},{"type":"web","name":"prepsync-frontend","runtime":"static","rootDir":"frontend","buildCommand":"npm install && npm run build","staticPublishPath":"dist","envVars":[{"key":"VITE_API_URL","fromService":{"type":"web","name":"prepsync-backend","property":"host"}}]}]}
+services:
+  # ─── BACKEND SERVICE (Django API) ──────────────────────────────────────────
+  - type: web
+    name: prepsync-backend
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt && python manage.py collectstatic --noinput"
+    startCommand: "python manage.py migrate --noinput && gunicorn mock_interview_api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level info"
+    envVars:
+      - key: IS_PRODUCTION
+        value: "True"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: EMAIL_OTP_ENABLED
+        value: "false"
+      - key: SMS_OTP_ENABLED
+        value: "false"
+      - key: ALLOWED_HOSTS
+        value: "*"
+
+  # ─── FRONTEND SERVICE (React Static Site) ──────────────────────────────────
+  - type: web
+    name: prepsync-frontend
+    runtime: static
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: prepsync-backend
+          property: host
