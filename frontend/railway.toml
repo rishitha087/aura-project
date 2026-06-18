@@ -1,0 +1,13 @@
+# Railway config for the React frontend service
+# This tells Railway to treat the output of `npm run build` as a static site.
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+# Serve the Vite build output as a static directory
+staticDir = "dist"
+
+# IMPORTANT: The _redirects file in dist/ (or public/) handles React Router's SPA routing.
+# Without it, refreshing any non-root URL (e.g. /student/dashboard) returns 404.

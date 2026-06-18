@@ -1,0 +1,17 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+# Full start command:
+# 1. Apply any pending DB migrations
+# 2. Collect all static files (CSS/JS/admin) into staticfiles/
+# 3. Start gunicorn with 2 workers (safe for Railway starter plan)
+startCommand = "python manage.py migrate --noinput && python manage.py collectstatic --noinput && gunicorn mock_interview_api.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --log-level info"
+
+# Railway pings this every 30s to check the service is alive
+healthcheckPath = "/api/health/"
+healthcheckTimeout = 30
+
+# Restart on non-zero exit code (handles transient crashes)
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
