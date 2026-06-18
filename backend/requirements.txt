@@ -11,3 +11,5 @@ gunicorn>=21.2.0
 whitenoise[brotli]>=6.6.0
 # PDF parsing for resume AI analysis
 pypdf>=4.0.0
+# HTTP client for Gemini AI API calls
+requests>=2.31.0
