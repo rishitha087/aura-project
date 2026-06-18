@@ -17,9 +17,13 @@ dotenv.load_dotenv(BASE_DIR / '.env')
 
 # ─── ENVIRONMENT DETECTION ────────────────────────────────────────────────────
 
-# Railway automatically sets RAILWAY_ENVIRONMENT='production'
-# For local dev this is unset, so IS_PRODUCTION will be False
-IS_PRODUCTION = os.getenv('RAILWAY_ENVIRONMENT') == 'production'
+# Railway automatically injects RAILWAY_ENVIRONMENT and RAILWAY_STATIC_URL.
+# We check both so IS_PRODUCTION works even if you forget to set RAILWAY_ENVIRONMENT.
+# For local dev both are unset → IS_PRODUCTION = False.
+IS_PRODUCTION = (
+    os.getenv('RAILWAY_ENVIRONMENT') == 'production'
+    or bool(os.getenv('RAILWAY_STATIC_URL'))   # Railway always sets this in all envs
+)
 
 
 # ─── SECURITY ─────────────────────────────────────────────────────────────────
@@ -40,12 +44,21 @@ DEBUG = not IS_PRODUCTION
 # ALLOWED_HOSTS: set via env var in production, e.g.:
 # ALLOWED_HOSTS=your-app.up.railway.app,your-custom-domain.com
 _default_hosts = 'localhost,127.0.0.1'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', _default_hosts).split(',')
+ALLOWED_HOSTS = [h.strip() for h in os.getenv('ALLOWED_HOSTS', _default_hosts).split(',') if h.strip()]
 
-# Always allow Railway internal health checks
+# Always allow Railway's internal healthcheck probe.
+# Railway's internal probe sends: Host: localhost or Host: 0.0.0.0
+# Without these, Django returns 400 Bad Request → healthcheck fails.
 if IS_PRODUCTION:
-    ALLOWED_HOSTS.append('.up.railway.app')
-    ALLOWED_HOSTS.append('.railway.app')
+    ALLOWED_HOSTS += [
+        'localhost',
+        '127.0.0.1',
+        '0.0.0.0',
+        '.up.railway.app',
+        '.railway.app',
+    ]
+    # De-duplicate
+    ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS))
 
 
 # ─── APPLICATION DEFINITION ───────────────────────────────────────────────────
