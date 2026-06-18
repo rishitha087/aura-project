@@ -1,4 +1,5 @@
 services:
+  # ─── BACKEND SERVICE (Django API) ──────────────────────────────────────────
   - type: web
     name: prepsync-backend
     env: python
@@ -28,3 +29,16 @@ services:
       name: prepsync-media
       mountPath: /data
       sizeGB: 1
+
+  # ─── FRONTEND SERVICE (React Static Site) ──────────────────────────────────
+  - type: static
+    name: prepsync-frontend
+    rootDir: frontend
+    buildCommand: "npm install && npm run build"
+    publishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: prepsync-backend
+          property: host
